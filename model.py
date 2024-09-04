@@ -50,6 +50,34 @@ def vanilla_encoder(x_train, t):
     encoder_t.trainable = False # freeze encoder weights
     return encoder_t
 
+# Encoder only 
+def vanilla_encoder_test(x_train, t):
+    # Specify dimensions for input/output and latent space layers
+    original_dim = x_train.shape[1] # number of features/columns
+    latent_dim = 2 # latent space dimension
+    init = tf.keras.initializers.GlorotNormal(seed=seed) # weight initialiser seed
+
+    # ********** Create Encoder **********
+
+    #--- Input Layer 
+    visible = Input(shape=(original_dim,), name='Encoder-Input-Layer')
+
+    #--- Hidden Layer
+    h_enc1 = Dense(units=512, activation='relu', kernel_initializer = init, name='Encoder-Hidden-Layer-1')(visible)
+    h_enc2 = Dense(units=256, activation='relu', kernel_initializer = init, name='Encoder-Hidden-Layer-2')(h_enc1)
+    h_enc3 = Dense(units=128, activation='relu', kernel_initializer = init, name='Encoder-Hidden-Layer-3')(h_enc2)
+
+    #--- Custom Latent Space Layer
+    z_mean = Dense(units=latent_dim, kernel_initializer = init, name='Z-Mean')(h_enc3) # Mean component
+    z_log_sigma = Dense(units=latent_dim, kernel_initializer = init, name='Z-Log-Sigma')(h_enc3) # Standard deviation component
+    z = Lambda(sampling_model, name='Z-Sampling-Layer')([z_mean, z_log_sigma]) # Z sampling layer
+
+    #--- Create Encoder model
+    encoder_t = Model(visible, [z_mean, z_log_sigma, z], name='Encoder-Model') # Define encoder model
+    encoder_t.set_weights(t) # set weights from loaded encoder
+    encoder_t.trainable = False # freeze encoder weights
+    return encoder_t
+
 # Full model
 def vanilla_fullmodel(x_train, weights):
     # Specify dimensions for input/output and latent space layers
